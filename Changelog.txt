@@ -1,0 +1,31 @@
+﻿Change log
+===
+
+1.1.0 2015-01-27
+---
+- Added some mime types to File
+- Added custom User Agent
+
+1.1.0 2015-01-16
+---
+- Added attempts to request
+- Added Url to File
+- Fixed issue where properties not set to lower case
+
+1.0.2 2015-01-15
+---
+- Fixed bug where Limit not set to default if not valid
+- Fixed bug where ToString uses device CultureInfo, it can cause issues with decimals, doubles, etc
+
+1.0.1 2015-01-13
+---
+- Fix bug where Header key already exists
+- Added Contains method to response
+- Added Get method to deserialize object to desired class
+
+1.0 2015-01-06
+---
+- Implemented Get Client (GET, POST, PUT, DELETE)
+- Implemented File and file upload
+- Implemented Query String
+- Implemented Response
