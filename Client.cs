@@ -180,6 +180,7 @@ namespace WSD.Rest
 			httpClient.DefaultRequestHeaders.UserAgent.ParseAdd (UserAgent);
 
 			foreach (KeyValuePair<string, string> header in Headers) {
+				if (header.Key == null || header.Key.Equals ("")) continue;
 				httpClient.DefaultRequestHeaders.Add (header.Key, header.Value);
 			}
 
