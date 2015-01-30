@@ -17,7 +17,7 @@ namespace WSD.Rest
 		public string ToQueryString()
 		{
 			String separator = "?";
-			String qs = "";
+			 String qs = "";
 
 			try {
 				if (int.Parse(string.Format("{0}", Limit)) < 1) {
@@ -48,7 +48,7 @@ namespace WSD.Rest
 				qs += string.Format (
 					"{0}{1}={2}", 
 					separator, 
-					property.Key.ToString (), 
+					property.Key.ToString ().ToLower (), 
 					value
 				);
 				separator = "&";
