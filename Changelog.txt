@@ -1,6 +1,11 @@
 ﻿Change log
 ===
 
+1.1.1 2015-01-30
+---
+- Fixed issue where query doesn't convert the key to lower case
+- Fixed issue when the header key is null or empty
+
 1.1.0 2015-01-27
 ---
 - Added some mime types to File
