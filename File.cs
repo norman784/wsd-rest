@@ -16,8 +16,7 @@ namespace WSD.Rest
 		public string Name;
 		public string Type;
 		public string Url;
-
-		byte[] Data;
+		public byte[] Data;
 
 		public File (string name, string type, byte[] data)
 		{
