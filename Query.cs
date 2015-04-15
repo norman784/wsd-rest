@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Collections;
+using Newtonsoft.Json;
 
 namespace WSD.Rest
 {
@@ -27,7 +28,9 @@ namespace WSD.Rest
 				Limit = DefaultLimit;
 			}
 
-			Dictionary<string, object> properties = ObjectHelper.GetProperties (this);
+			Dictionary<string, object> properties = JsonConvert.DeserializeObject<Dictionary<string, object>> (
+				JsonConvert.SerializeObject (this)
+			);
 
 			foreach (KeyValuePair<string, object> property in properties) {
 				if (property.Value == null)
