@@ -75,6 +75,19 @@ namespace WSD.Rest
 
 			return ErrorMessage != null;
 		}
+
+		public void Check ()
+		{
+			if (Content == null) {
+				throw new Exception("Unkown exception: response content was null");
+			} else if (StatusCode != HttpStatusCode.OK) {
+				throw new Exception(string.Format(
+					"Exception: ({0}) {1}", 
+					GetErrorCode(), 
+					GetErrorMessage ()
+				));
+			}
+		}
 	}
 }
 
