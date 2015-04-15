@@ -3,20 +3,14 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Net;
-using System.Globalization;
+using System.Threading;
 
 namespace WSD.Rest
 {
 	public class Client
 	{
-		public enum Method {
-			GET,
-			POST,
-			PUT,
-			DELETE
-		}
-
-		static public string UserAgent = "WSD-Rest-1.1.0";
+		static public string ClientLibrary = "WSD-Rest-1.2.0";
+		static string ClientLibraryKey = "client-library";
 
 		static bool ApplicationSetup = false;
 		static bool ApplicationInitialized = false;
@@ -74,16 +68,23 @@ namespace WSD.Rest
 				}
 				Headers.Add (ApplicationSecretKey, ApplicationSecretValue);
 			}
+
+			if (Headers.ContainsKey(ClientLibraryKey)) {
+				Headers.Remove(ClientLibraryKey);
+			}
+
+			Headers.Add (ClientLibraryKey, ClientLibrary);
 		}
 
 		public static void SetAccessToken (string applicationAccessTokenValue)
 		{
 			ApplicationAccessTokenValue = applicationAccessTokenValue;
 
+			if (Headers.ContainsKey(ApplicationAccessTokenKey)) {
+				Headers.Remove(ApplicationAccessTokenKey);
+			}
+
 			if (ApplicationAccessTokenValue != null) {
-				if (Headers.ContainsKey(ApplicationAccessTokenKey)) {
-					Headers.Remove(ApplicationAccessTokenKey);
-				}
 				Headers.Add (ApplicationAccessTokenKey, ApplicationAccessTokenValue);
 			}
 		}
@@ -93,75 +94,56 @@ namespace WSD.Rest
 			return ApplicationAccessTokenValue;
 		}
 
-		public static async Task<Response> Get (string api, Query query = null)
+		public static string GetUrl (bool version = true)
+		{
+			return Url + Version;
+		}
+
+		public static async Task<Response> Get (string api, Query query = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return await Request (
-				Method.GET, 
-				string.Format("{0}{1}", api, query != null ? query.ToQueryString () : "")
+				HttpMethod.Get,
+				string.Format("{0}{1}", api, query != null ? query.ToQueryString () : ""),
+				null,
+				cancellationToken
 			);
 		}
 
-		public static async Task<Response> Post (string api, string id, Dictionary<string, object> data)
+		public static async Task<Response> Post (string api, string id = null, Dictionary<string, object> data = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			MultipartFormDataContent content = GetContent(data);
+			MultipartFormDataContent content = RequestContent.Parse(data);
 
 			return await Request (
-				Method.POST, 
+				HttpMethod.Post, 
 				id != null ? string.Format ("{0}/{1}", api, id) : api, 
-				content
+				content,
+				cancellationToken
 			);
 		}
 
-		public static async Task<Response> Put (string api, string id, Dictionary<string, object> data)
+		public static async Task<Response> Put (string api, string id = null, Dictionary<string, object> data = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			MultipartFormDataContent content = GetContent(data);
+			MultipartFormDataContent content = RequestContent.Parse(data);
 
 			return await Request (
-				Method.PUT, 
+				HttpMethod.Put, 
 				id != null ? string.Format ("{0}/{1}", api, id) : api, 
-				content
+				content,
+				cancellationToken
 			);
 		}
 
-		public static async Task<Response> Delete (string api, string id)
+		public static async Task<Response> Delete (string api, string id, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return await Request (
-				Method.DELETE, 
-				string.Format("{0}/{1}", api, id)
+				HttpMethod.Delete, 
+				string.Format("{0}/{1}", api, id),
+				null,
+				cancellationToken
 			);
 		}
 
-		static MultipartFormDataContent GetContent (Dictionary<string, object> data)
-		{
-			MultipartFormDataContent form = new MultipartFormDataContent ();
-
-			foreach (KeyValuePair<string, object> property in data) {
-				if (property.Value is File) {
-					if (!((File)property.Value).HasContent ())
-						continue;
-					File file = (File) property.Value;
-					form.Add (file.GetContent (), property.Key.ToLower(), file.Name);
-				} else {
-					string value = "";
-
-					if (property.Value is double) {
-						value = ((double)property.Value).ToString (CultureInfo.InvariantCulture);
-					} else if (property.Value is float) {
-						value = ((float)property.Value).ToString (CultureInfo.InvariantCulture);
-					} else if (property.Value is decimal) {
-						value = ((decimal)property.Value).ToString (CultureInfo.InvariantCulture);
-					} else if (property.Value != null) {
-						value = property.Value.ToString ();
-					}
-
-					form.Add (new StringContent (value), property.Key.ToLower ());
-				}
-			}
-
-			return form;
-		}
-
-		static async Task<Response> Request (Method method, string api, MultipartContent content = null)
+		static async Task<Response> Request (HttpMethod method, string api, MultipartContent content = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			int numberOfAttempts = 0;
 			if (!ApplicationSetup) {
@@ -177,8 +159,6 @@ namespace WSD.Rest
 			HttpClient httpClient = new HttpClient ();
 			httpClient.MaxResponseContentBufferSize = 256000;
 
-			httpClient.DefaultRequestHeaders.UserAgent.ParseAdd (UserAgent);
-
 			foreach (KeyValuePair<string, string> header in Headers) {
 				if (header.Key == null || header.Key.Equals ("")) continue;
 				httpClient.DefaultRequestHeaders.Add (header.Key, header.Value);
@@ -188,29 +168,24 @@ namespace WSD.Rest
 
 //			do {
 				try {
-					switch (method) {
-					case Method.GET:
-						httpResponse = await httpClient.GetAsync (url).ConfigureAwait (false);
-						break;
-					case Method.POST:
-						httpResponse = await httpClient.PostAsync (url, content).ConfigureAwait (false);
-						break;
-					case Method.PUT:
-						httpResponse = await httpClient.PutAsync (url, content).ConfigureAwait (false);
-						break;
-					case Method.DELETE:
-						httpResponse = await httpClient.DeleteAsync (url).ConfigureAwait (false);
-						break;
-					}
+				if (method.Equals(HttpMethod.Get)) {
+					httpResponse = await httpClient.GetAsync (url, cancellationToken).ConfigureAwait (false);
+				} else if (method.Equals(HttpMethod.Post)) {
+					httpResponse = await httpClient.PostAsync (url, content, cancellationToken).ConfigureAwait (false);
+				} else if (method.Equals(HttpMethod.Put)) {
+					httpResponse = await httpClient.PutAsync (url, content, cancellationToken).ConfigureAwait (false);
+				} else if (method.Equals(HttpMethod.Delete)) {
+					httpResponse = await httpClient.DeleteAsync (url, cancellationToken).ConfigureAwait (false);
+				}
 
-					if (httpResponse == null) {
-						response.Content = null;
-						response.StatusCode = 0;
-					} else {
-						HttpContent httpContent = httpResponse.Content;
-						response.Content = await httpContent.ReadAsStringAsync ();
-						response.StatusCode = httpResponse.StatusCode;
-					}
+				if (httpResponse == null) {
+					response.Content = null;
+					response.StatusCode = 0;
+				} else {
+					HttpContent httpContent = httpResponse.Content;
+					response.Content = await httpContent.ReadAsStringAsync ();
+					response.StatusCode = httpResponse.StatusCode;
+				}
 
 					return response;
 				} catch (AggregateException ex) {
