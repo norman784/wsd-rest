@@ -31,19 +31,28 @@ namespace WSD.Rest
 			return form;
 		}
 
-		static Dictionary<string, object> GetContentDictionary (Dictionary<string, object> data, string key = "")
+		public static Dictionary<string, object> GetContentDictionary (Dictionary<string, object> data, string key = "")
 		{
 			Dictionary<string, object> _data = new Dictionary<string, object> ();
 
 			foreach (KeyValuePair<string, object> property in data) {
-				if (property.Value is IDictionary) {
-					Dictionary<string, object> __data = GetContentDictionary (property.Value as Dictionary<string, object>, property.Key.ToLower ());
+				if (property.Value is IList) {
+					Dictionary<string, object> __data = GetContentList (
+						property.Value as List<object>, 
+						key.Length == 0 ? property.Key : String.Format ("{0}[{1}]", key, property.Key.ToLower ())
+					);
 
 					foreach (KeyValuePair<string, object> _property in __data) {
-						_data.Add (_property.Key, _property.Value);
+						_data.Add (
+							key.Length == 0 ? _property.Key : String.Format ("{0}[{1}]", key, _property.Key.ToLower ()), 
+							_property.Value
+						);
 					}
-				} else if (property.Value is JContainer) {
-					Dictionary<string, object> __data = GetContentJContainer (property.Value as JContainer, property.Key.ToLower ());
+				} else if (property.Value is IDictionary) {
+					Dictionary<string, object> __data = GetContentDictionary (
+						property.Value as Dictionary<string, object>, 
+						key.Length == 0 ? property.Key : String.Format ("{0}[{1}]", key, property.Key.ToLower ())
+					);
 
 					foreach (KeyValuePair<string, object> _property in __data) {
 						_data.Add (_property.Key, _property.Value);
@@ -57,30 +66,34 @@ namespace WSD.Rest
 			}
 
 			return _data;
-		}
+		}	
 
-		static Dictionary<string, object> GetContentJContainer (JContainer data, string key = "")
+		static Dictionary<string, object> GetContentList (List<object> data, string key = "")
 		{
 			Dictionary<string, object> _data = new Dictionary<string, object> ();
+			int index = 0;
 
-			foreach (JToken token in data) {
-				if (token is JProperty) {
-					JProperty property = token as JProperty;
-					_data.Add(
-						key.Length == 0 ? property.Name : String.Format ("{0}[{1}]", key, property.Name.ToLower ()),
-						property.Value
-					);
-				} else {
-					Dictionary<string, object> __data = GetContentJContainer (token.Value<JContainer> (), key);
+			foreach (object property in data) {
+				string _key = key.Length == 0 ? index.ToString () : String.Format ("{0}[{1}]", key, index.ToString ());
+
+				if (property is IDictionary) {
+					Dictionary<string, object> __data = GetContentDictionary (property as Dictionary<string, object>, _key);
 
 					foreach (KeyValuePair<string, object> _property in __data) {
-						_data.Add (_property.Key, _property.Value);
+						_data.Add (
+							_property.Key.ToLower (), 
+							_property.Value
+						);
 					}
+				} else {
+					_data.Add (_key, property);
 				}
+					
+				++index;
 			}
 
 			return _data;
-		}	
+		}
 
 		static string GetContentString (object data)
 		{
