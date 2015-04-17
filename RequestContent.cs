@@ -22,7 +22,7 @@ namespace WSD.Rest
 					if (!((File)property.Value).HasContent ())
 						continue;
 					File file = (File)property.Value;
-					form.Add (file.GetContent (), String.Format(property.Key, property.Key.ToLower ()), file.Name);
+					form.Add (file.GetContent (), property.Key.ToLower (), file.Name);
 				} else {
 					form.Add (new StringContent (GetContentString(property.Value)), property.Key.ToLower ());
 				}
