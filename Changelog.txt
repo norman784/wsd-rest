@@ -1,6 +1,10 @@
 ﻿Change log
 ===
 
+1.2.2 2015-04-17
+---
+- Fix issue where File key was not correctly converted to lower case
+
 1.2.1 2015-04-16
 ---
 - Fix issue where complex dictionary was not converted correctly to flat dictionary
